@@ -22,7 +22,7 @@
 <body>
 
     <div class="card">
-        <!-- Certifique-se de que o arquivo Acheeii.jpg esteja na mesma pasta no S3 -->
+        <!-- Certifique-se de que o arquivo Acheeii.jpg esteja na mesma pasta no GitHub -->
         <img src="Acheeii.jpg" alt="Logo Acheeii" class="logo">
         
         <h1>Objeto Encontrado!</h1>
@@ -48,7 +48,7 @@
             
             const btn = document.getElementById('btnEnviar');
             const status = document.getElementById('status');
-            const mensagem = document.getElementById('mensagem').value;
+            const mensagemInput = document.getElementById('mensagem').value;
 
             // 1. Captura o ID da Tag da URL (ex: ?id=TESTE01)
             const urlParams = new URLSearchParams(window.location.search);
@@ -69,13 +69,13 @@
 
                     const payload = {
                         tag_id: tagId,
-                        msg: mensagem,
-                        lat: position.coords.latitude,
-                        lon: position.coords.longitude
+                        info: mensagemInput, // 'info' é o campo que sua Lambda usa para a mensagem
+                        lat: position.coords.latitude.toString(),
+                        lon: position.coords.longitude.toString()
                     };
 
-                    // URL FINAL DA SUA API GATEWAY NA AWS
-                    const API_URL = "https://amazonaws.com";
+                    // SUA URL DA API GATEWAY CORRIGIDA
+                    const API_URL = "https://beoq915off.execute-api.us-east-2.amazonaws.com/v1/notificar";
 
                     try {
                         const response = await fetch(API_URL, {
@@ -98,14 +98,13 @@
                     }
                 },
                 (error) => {
-                    alert("Para ajudar o dono, precisamos da localização. Por favor, autorize o acesso ao GPS nas configurações do seu navegador.");
+                    alert("Para ajudar o dono, precisamos da localização. Por favor, autorize o acesso ao GPS.");
                     btn.disabled = false;
                     btn.innerText = "Notificar o Dono Agora";
                 },
-                { enableHighAccuracy: true } // Garante melhor precisão do GPS
+                { enableHighAccuracy: true } 
             );
         });
     </script>
 </body>
 </html>
-
