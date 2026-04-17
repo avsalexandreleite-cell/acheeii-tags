@@ -82,20 +82,43 @@
         }
 
         // 2. FLUXO DE ATIVAÇÃO
-        document.getElementById('formAtivar').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btnAtivar');
-            btn.disabled = true;
-            btn.innerText = "Ativando...";
+document.getElementById('formAtivar').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btnAtivar');
+    btn.disabled = true;
+    btn.innerText = "Ativando...";
 
-            const payload = {
-                tag_id: tagId,
-                owner_name: document.getElementById('owner_nome').value,
-                owner_email: document.getElementById('owner_email').value,
-                owner_phone: document.getElementById('owner_phone').value,
-                object_name: document.getElementById('obj_nome').value,
-                ativada: true
-            };
+    const payload = {
+        tag_id: tagId,
+        owner_name: document.getElementById('owner_name').value,
+        owner_email: document.getElementById('owner_email').value,
+        owner_phone: document.getElementById('owner_phone').value,
+        object_name: document.getElementById('obj_nome').value,
+        ativada: true
+    };
+
+    const resp = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+    
+    if (resp.ok) {
+        // --- ALTERAÇÃO AQUI: Esconde tudo e mostra apenas o sucesso final ---
+        document.getElementById('sessaoAtivar').classList.add('hidden');
+        const status = document.getElementById('status');
+        status.style.display = "block";
+        status.innerHTML = `
+            <div style="padding: 20px;">
+                <h2 style="color: #28a745;">✨ Tudo pronto!</h2>
+                <p>Sua etiqueta <strong>${payload.object_name}</strong> foi ativada com sucesso.</p>
+                <p>Agora você já pode prender ela ao seu objeto. Se alguém a encontrar, você será avisado!</p>
+                <br>
+                <button onclick="window.close()" style="background-color: #003366; color: white; padding: 10px; border-radius: 5px; border: none; cursor: pointer;">Fechar Página</button>
+            </div>
+        `;
+    } else {
+        alert("Erro ao ativar. Tente novamente.");
+        btn.disabled = false;
+        btn.innerText = "Ativar Proteção";
+    }
+});
 
             const resp = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
             if (resp.ok) {
