@@ -1,0 +1,111 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acheeii!!! - Objeto Encontrado</title>
+    <style>
+        body { font-family: sans-serif; background-color: #003366; color: white; text-align: center; padding: 20px; }
+        .card { background: white; color: #333; padding: 30px; border-radius: 15px; max-width: 400px; margin: 50px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        h1 { color: #003366; margin-bottom: 10px; font-size: 1.5rem; }
+        p { font-size: 1rem; line-height: 1.5; }
+        .logo { width: 120px; margin-bottom: 20px; border-radius: 10px; }
+        textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; resize: none; }
+        button { background-color: #28a745; color: white; border: none; padding: 15px 25px; font-size: 1.1rem; border-radius: 5px; cursor: pointer; width: 100%; transition: 0.3s; font-weight: bold; }
+        button:hover { background-color: #218838; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .footer { margin-top: 20px; font-size: 0.8rem; opacity: 0.7; }
+        #status { display:none; color: #28a745; font-weight: bold; margin-top: 15px; padding: 10px; border: 1px solid #28a745; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <!-- Certifique-se de que o arquivo Acheeii.jpg esteja na mesma pasta no S3 -->
+        <img src="Acheeii.jpg" alt="Logo Acheeii" class="logo">
+        
+        <h1>Objeto Encontrado!</h1>
+        <p>Você é um herói! Encontrou um objeto protegido pelo <strong>Acheeii!!!</strong>.</p>
+        
+        <form id="formNotificar">
+            <textarea id="mensagem" placeholder="Onde você deixou o objeto? Ex: Na portaria, no balcão do café..." rows="4" required></textarea>
+            <button type="submit" id="btnEnviar">Notificar o Dono Agora</button>
+        </form>
+        
+        <div id="status">
+            ✅ Notificação enviada! O dono já está sendo avisado e recebeu a localização.
+        </div>
+    </div>
+
+    <div class="footer">
+        Tecnologia que devolve. © 2024 Acheeii!!!
+    </div>
+
+    <script>
+        document.getElementById('formNotificar').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('btnEnviar');
+            const status = document.getElementById('status');
+            const mensagem = document.getElementById('mensagem').value;
+
+            // 1. Captura o ID da Tag da URL (ex: ?id=TESTE01)
+            const urlParams = new URLSearchParams(window.location.search);
+            const tagId = urlParams.get('id');
+
+            if (!tagId) {
+                alert("Erro: ID da etiqueta não identificado na URL. O dono não poderá ser avisado.");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Obtendo localização...";
+
+            // 2. Solicita GPS e envia os dados para a sua AWS
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    btn.innerText = "Enviando notificação...";
+
+                    const payload = {
+                        tag_id: tagId,
+                        msg: mensagem,
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude
+                    };
+
+                    // URL FINAL DA SUA API GATEWAY NA AWS
+                    const API_URL = "https://amazonaws.com";
+
+                    try {
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (response.ok) {
+                            status.style.display = "block";
+                            btn.style.display = "none";
+                            document.getElementById('mensagem').style.display = "none";
+                        } else {
+                            throw new Error("Erro na resposta do servidor");
+                        }
+                    } catch (err) {
+                        alert("Erro ao conectar com o servidor. Verifique sua conexão e tente novamente.");
+                        btn.disabled = false;
+                        btn.innerText = "Notificar o Dono Agora";
+                    }
+                },
+                (error) => {
+                    alert("Para ajudar o dono, precisamos da localização. Por favor, autorize o acesso ao GPS nas configurações do seu navegador.");
+                    btn.disabled = false;
+                    btn.innerText = "Notificar o Dono Agora";
+                },
+                { enableHighAccuracy: true } // Garante melhor precisão do GPS
+            );
+        });
+    </script>
+</body>
+</html>
+
