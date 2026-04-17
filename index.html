@@ -14,7 +14,10 @@
         input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; resize: none; font-size: 1rem; }
         button { background-color: #28a745; color: white; border: none; padding: 15px 25px; font-size: 1.1rem; border-radius: 5px; cursor: pointer; width: 100%; transition: 0.3s; font-weight: bold; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
-        .btn-sair { background-color: #dc3545; margin-top: 20px; }
+        /* COR DO BOTÃO SAIR ALTERADA PARA AZUL */
+        .btn-sair { background-color: #007bff; margin-top: 20px; }
+        .btn-sair:hover { background-color: #0056b3; }
+        
         .footer { margin-top: 20px; font-size: 0.8rem; opacity: 0.7; }
         #status { display:none; margin-top: 15px; padding: 20px; border-radius: 10px; }
         .hidden { display: none; }
@@ -56,7 +59,7 @@
             </form>
         </div>
 
-        <!-- TELA DE SUCESSO COM BOTÃO SAIR -->
+        <!-- TELA DE SUCESSO -->
         <div id="status" class="success-box">
             <div id="status-content"></div>
             <button onclick="sair()" class="btn-sair">Sair</button>
@@ -99,7 +102,7 @@
                         lat: lat.toString(), lon: lon.toString()
                     })
                 });
-                exibirSucesso("✅ Notificação enviada!", "O dono foi avisado. Você pode fechar esta página.");
+                exibirSucesso("✅ Concluído!", "Ação realizada com sucesso. Você pode fechar esta página.");
             } catch (err) {
                 processandoEnvio = false;
                 document.getElementById('btnEnviar').disabled = false;
@@ -115,7 +118,6 @@
         }
 
         function sair() {
-            // Tenta fechar a aba. Se não puder, redireciona para o Google para "limpar" a tela.
             if (!window.close()) {
                 window.location.href = "https://google.com";
             }
@@ -150,7 +152,7 @@
             };
             try {
                 await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                exibirSucesso("✅ Ativado!", "Etiqueta pronta. Agora você pode sair.");
+                exibirSucesso("✅ Tudo Pronto!", "Sua etiqueta foi ativada. Agora você pode sair.");
             } catch (err) {
                 btn.disabled = false;
                 btn.innerText = "Ativar Etiqueta";
