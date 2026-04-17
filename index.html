@@ -14,7 +14,7 @@
         input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; resize: none; font-size: 1rem; }
         button { background-color: #28a745; color: white; border: none; padding: 15px 25px; font-size: 1.1rem; border-radius: 5px; cursor: pointer; width: 100%; transition: 0.3s; font-weight: bold; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
-        .btn-sair { background-color: #007bff; margin-top: 20px; }
+        .btn-sair { background-color: #007bff; margin-top: 20px; width: 100%; }
         .footer { margin-top: 20px; font-size: 0.8rem; opacity: 0.7; }
         #status { display:none; margin-top: 15px; padding: 20px; border-radius: 10px; }
         .hidden { display: none; }
@@ -27,6 +27,7 @@
         <img src="Acheeii.jpg" alt="Logo Acheeii" class="logo">
         <div id="loading">Verificando etiqueta...</div>
 
+        <!-- SESSÃO NOTIFICAR -->
         <div id="sessaoNotificar" class="hidden">
             <h1>Objeto Encontrado!</h1>
             <p>Você encontrou um objeto protegido.</p>
@@ -44,8 +45,10 @@
             </form>
         </div>
 
+        <!-- SESSÃO ATIVAR -->
         <div id="sessaoAtivar" class="hidden">
             <h1>Ativar Proteção</h1>
+            <p>Cadastre seus dados para proteger este objeto.</p>
             <form id="formAtivar">
                 <input type="text" id="obj_nome" placeholder="Nome do Objeto" required>
                 <input type="text" id="owner_nome" placeholder="Seu Nome" required>
@@ -57,6 +60,7 @@
             </form>
         </div>
 
+        <!-- TELA DE SUCESSO -->
         <div id="status" class="success-box">
             <div id="status-content"></div>
             <button onclick="sair()" class="btn-sair">Sair</button>
@@ -71,11 +75,12 @@
         let enviado = false;
 
         async function checkTag() {
-            if (!tagId) return;
+            if (!tagId) { document.getElementById('loading').innerText = "Erro: ID ausente."; return; }
             try {
                 const resp = await fetch(`${API_URL}?id=${tagId}`);
                 const data = await resp.json();
                 document.getElementById('loading').classList.add('hidden');
+                
                 if (data.status === "pendente_ativacao") {
                     document.getElementById('sessaoAtivar').classList.remove('hidden');
                 } else {
@@ -84,7 +89,7 @@
                     document.getElementById('view_instrucoes').innerText = data.dados_objeto.instrucoes || "Não cadastrado";
                     document.getElementById('sessaoNotificar').classList.remove('hidden');
                 }
-            } catch (e) { document.getElementById('loading').innerText = "Erro de conexão."; }
+            } catch (e) { document.getElementById('loading').innerText = "Erro ao conectar."; }
         }
 
         async function acaoFinal(lat, lon) {
@@ -93,11 +98,11 @@
             
             document.getElementById('sessaoNotificar').classList.add('hidden');
             document.getElementById('sessaoAtivar').classList.add('hidden');
+            document.getElementById('loading-msg').style.display = "none";
 
             try {
-                await fetch(API_URL, {
+                const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         tag_id: tagId,
                         info: document.getElementById('mensagem').value || "Ativação",
@@ -105,9 +110,17 @@
                         lon: lon.toString()
                     })
                 });
-            } catch (e) { console.log("Erro no envio"); }
-            
-            exibirSucesso("✅ Concluído!", "Ação realizada com sucesso.");
+                
+                if (response.ok) {
+                    exibirSucesso("✅ Concluído!", "O dono foi avisado. Obrigado por ajudar!");
+                } else {
+                    throw new Error();
+                }
+            } catch (e) {
+                enviado = false;
+                alert("Erro ao enviar. Verifique sua internet.");
+                location.reload();
+            }
         }
 
         function exibirSucesso(titulo, mensagem) {
@@ -122,17 +135,22 @@
             e.preventDefault();
             document.getElementById('containerBotao').innerHTML = ""; 
             document.getElementById('loading-msg').style.display = "block";
-            const timer = setTimeout(() => acaoFinal("0", "0"), 5000);
+            
+            const timer = setTimeout(() => acaoFinal("0", "0"), 6000);
+
             navigator.geolocation.getCurrentPosition(
                 (pos) => { clearTimeout(timer); acaoFinal(pos.coords.latitude, pos.coords.longitude); },
                 () => { clearTimeout(timer); acaoFinal("0", "0"); },
-                { enableHighAccuracy: true, timeout: 4500 }
+                { enableHighAccuracy: true, timeout: 5000 }
             );
         });
 
         document.getElementById('formAtivar').addEventListener('submit', async (e) => {
             e.preventDefault();
-            document.getElementById('btnAtivar').remove();
+            const btn = document.getElementById('btnAtivar');
+            btn.disabled = true;
+            btn.innerText = "Ativando...";
+
             const payload = {
                 tag_id: tagId, ativada: true,
                 owner_name: document.getElementById('owner_nome').value,
@@ -142,12 +160,17 @@
                 contatos_alternativos: document.getElementById('contatos_alternativos').value,
                 instrucoes_devolucao: document.getElementById('instrucoes_devolucao').value
             };
-            await fetch(API_URL, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify(payload) 
-            });
-            exibirSucesso("✅ Ativado!", "Sua proteção está ativa.");
+
+            try {
+                const resp = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+                if (resp.ok) {
+                    exibirSucesso("✅ Ativado!", "Sua proteção está ativa. Pode fechar a página.");
+                } else { throw new Error(); }
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerText = "Ativar Etiqueta";
+                alert("Erro na ativação.");
+            }
         });
 
         checkTag();
