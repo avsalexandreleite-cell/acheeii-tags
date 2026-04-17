@@ -14,7 +14,6 @@
         input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; resize: none; font-size: 1rem; }
         button { background-color: #28a745; color: white; border: none; padding: 15px 25px; font-size: 1.1rem; border-radius: 5px; cursor: pointer; width: 100%; transition: 0.3s; font-weight: bold; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
-        button:hover:not(:disabled) { opacity: 0.9; }
         .footer { margin-top: 20px; font-size: 0.8rem; opacity: 0.7; }
         #status { display:none; color: #28a745; font-weight: bold; margin-top: 15px; padding: 10px; border: 1px solid #28a745; border-radius: 5px; }
         .hidden { display: none; }
@@ -23,16 +22,14 @@
 <body>
     <div class="card">
         <img src="Acheeii.jpg" alt="Logo Acheeii" class="logo">
-        
         <div id="loading">Verificando etiqueta...</div>
 
-        <!-- SESSÃO NOTIFICAR -->
         <div id="sessaoNotificar" class="hidden">
             <h1>Objeto Encontrado!</h1>
             <p>Você é um herói! Encontrou um objeto protegido.</p>
-            <div id="infoObjetoDono" style="text-align: left; background: #f9f9f9; padding: 10px; border-radius: 10px; margin-bottom: 15px; border-left: 5px solid #28a745;">
+            <div style="text-align: left; background: #f9f9f9; padding: 10px; border-radius: 10px; margin-bottom: 15px; border-left: 5px solid #28a745;">
                 <p><strong>Objeto:</strong> <span id="view_nome"></span></p>
-                <p><strong>Contatos Extras:</strong> <br><span id="view_contatos" style="font-size: 0.9rem;"></span></p>
+                <p><strong>Contatos:</strong> <br><span id="view_contatos" style="font-size: 0.9rem;"></span></p>
                 <p><strong>Instruções:</strong> <br><span id="view_instrucoes" style="font-size: 0.9rem;"></span></p>
             </div>
             <form id="formNotificar">
@@ -41,17 +38,15 @@
             </form>
         </div>
 
-        <!-- SESSÃO ATIVAR -->
         <div id="sessaoAtivar" class="hidden">
             <h1>Ativar Proteção</h1>
-            <p>Cadastre seus dados para proteger este objeto.</p>
             <form id="formAtivar">
                 <input type="text" id="obj_nome" placeholder="Nome do Objeto" required>
                 <input type="text" id="owner_nome" placeholder="Seu Nome" required>
                 <input type="email" id="owner_email" placeholder="Seu E-mail" required>
                 <input type="tel" id="owner_phone" placeholder="Seu Telefone" required>
-                <textarea id="contatos_alternativos" placeholder="Contatos extras (Ex: Mãe 11...)" rows="2"></textarea>
-                <textarea id="instrucoes_devolucao" placeholder="Onde devolver? (Ex: Portaria)" rows="2"></textarea>
+                <textarea id="contatos_alternativos" placeholder="Contatos extras..." rows="2"></textarea>
+                <textarea id="instrucoes_devolucao" placeholder="Onde devolver?" rows="2"></textarea>
                 <button type="submit" id="btnAtivar" style="background-color: #003366;">Ativar Etiqueta</button>
             </form>
         </div>
@@ -64,43 +59,80 @@
         const API_URL = "https://beoq915off.execute-api.us-east-2.amazonaws.com/v1/notificar";
         const urlParams = new URLSearchParams(window.location.search);
         const tagId = urlParams.get('id');
+        
+        // TRAVA GLOBAL PARA EVITAR DUPLICIDADE
+        let processandoEnvio = false;
 
-        // 1. Verifica o status da Tag ao carregar
         async function checkTag() {
-            if (!tagId) {
-                document.getElementById('loading').innerText = "Erro: ID da etiqueta ausente."; 
-                return; 
-            }
+            if (!tagId) { document.getElementById('loading').innerText = "Erro: ID ausente."; return; }
             try {
                 const resp = await fetch(`${API_URL}?id=${tagId}`);
-                if (!resp.ok) throw new Error();
                 const data = await resp.json();
-                
                 document.getElementById('loading').classList.add('hidden');
-                
                 if (data.status === "pendente_ativacao") {
                     document.getElementById('sessaoAtivar').classList.remove('hidden');
                 } else {
-                    document.getElementById('view_nome').innerText = data.dados_objeto.nome || "Objeto Protegido";
-                    document.getElementById('view_contatos').innerText = data.dados_objeto.contatos || "Não informado";
-                    document.getElementById('view_instrucoes').innerText = data.dados_objeto.instrucoes || "Não informado";
+                    document.getElementById('view_nome').innerText = data.dados_objeto.nome;
+                    document.getElementById('view_contatos').innerText = data.dados_objeto.contatos || "Não cadastrado";
+                    document.getElementById('view_instrucoes').innerText = data.dados_objeto.instrucoes || "Não cadastrado";
                     document.getElementById('sessaoNotificar').classList.remove('hidden');
                 }
-            } catch (e) { 
-                document.getElementById('loading').innerText = "Erro ao conectar com o servidor."; 
+            } catch (e) { document.getElementById('loading').innerText = "Erro de conexão."; }
+        }
+
+        // FUNÇÃO ÚNICA DE DISPARO
+        async function enviarEmailFinal(lat, lon) {
+            if (processandoEnvio) return; 
+            processandoEnvio = true;
+
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        tag_id: tagId,
+                        info: document.getElementById('mensagem').value,
+                        lat: lat.toString(),
+                        lon: lon.toString()
+                    })
+                });
+                document.getElementById('sessaoNotificar').classList.add('hidden');
+                const st = document.getElementById('status');
+                st.style.display = "block";
+                st.innerText = lat !== "0" ? "✅ Notificação enviada!" : "✅ Notificação enviada (sem GPS).";
+            } catch (err) {
+                processandoEnvio = false;
+                document.getElementById('btnEnviar').disabled = false;
             }
         }
 
-        // 2. Lógica de Ativação
+        document.getElementById('formNotificar').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnEnviar');
+            btn.disabled = true;
+            btn.innerText = "Processando...";
+
+            // Timer de segurança: se o GPS não responder em 4s, envia zerado e encerra
+            const timeoutGPS = setTimeout(() => {
+                enviarEmailFinal("0", "0");
+            }, 4000);
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    clearTimeout(timeoutGPS);
+                    enviarEmailFinal(pos.coords.latitude, pos.coords.longitude);
+                },
+                () => {
+                    clearTimeout(timeoutGPS);
+                    enviarEmailFinal("0", "0");
+                },
+                { enableHighAccuracy: true, timeout: 3500 }
+            );
+        });
+
         document.getElementById('formAtivar').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = document.getElementById('btnAtivar');
-            btn.disabled = true;
-            btn.innerText = "Ativando...";
-
             const payload = {
-                tag_id: tagId, 
-                ativada: true,
+                tag_id: tagId, ativada: true,
                 owner_name: document.getElementById('owner_nome').value,
                 owner_email: document.getElementById('owner_email').value,
                 owner_phone: document.getElementById('owner_phone').value,
@@ -108,70 +140,8 @@
                 contatos_alternativos: document.getElementById('contatos_alternativos').value,
                 instrucoes_devolucao: document.getElementById('instrucoes_devolucao').value
             };
-
-            try {
-                const resp = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                if (resp.ok) {
-                    document.getElementById('sessaoAtivar').classList.add('hidden');
-                    const status = document.getElementById('status');
-                    status.style.display = "block";
-                    status.innerHTML = `<h2 style="color:#28a745">✅ Ativado!</h2><p>Agora este objeto está seguro.</p>`;
-                }
-            } catch (err) {
-                alert("Erro ao ativar. Tente novamente.");
-                btn.disabled = false;
-                btn.innerText = "Ativar Etiqueta";
-            }
-        });
-
-        // 3. Lógica de Notificação (CORRIGIDA PARA EVITAR DUPLICIDADE)
-        document.getElementById('formNotificar').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btnEnviar');
-            
-            if (btn.disabled) return;
-            btn.disabled = true;
-            btn.innerText = "Enviando...";
-
-            // Função para pegar coordenadas com Timeout
-            const getCoords = () => {
-                return new Promise((resolve) => {
-                    if (!navigator.geolocation) resolve({ lat: "0", lon: "0" });
-                    
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => resolve({ lat: pos.coords.latitude.toString(), lon: pos.coords.longitude.toString() }),
-                        () => resolve({ lat: "0", lon: "0" }),
-                        { timeout: 6000 } // Espera 6 segundos
-                    );
-                });
-            };
-
-            const coords = await getCoords();
-
-            try {
-                const response = await fetch(API_URL, { 
-                    method: 'POST', 
-                    body: JSON.stringify({
-                        tag_id: tagId, 
-                        info: document.getElementById('mensagem').value,
-                        lat: coords.lat, 
-                        lon: coords.lon
-                    })
-                });
-
-                if (response.ok) {
-                    document.getElementById('sessaoNotificar').classList.add('hidden');
-                    const statusDiv = document.getElementById('status');
-                    statusDiv.style.display = "block";
-                    statusDiv.innerText = coords.lat !== "0" ? "✅ Notificação enviada!" : "✅ Notificação enviada (sem GPS).";
-                } else {
-                    throw new Error();
-                }
-            } catch (err) {
-                alert("Erro ao enviar notificação.");
-                btn.disabled = false;
-                btn.innerText = "Avisar o Dono Agora";
-            }
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+            location.reload();
         });
 
         checkTag();
