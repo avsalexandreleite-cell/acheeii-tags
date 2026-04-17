@@ -14,15 +14,12 @@
         input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; resize: none; font-size: 1rem; }
         button { background-color: #28a745; color: white; border: none; padding: 15px 25px; font-size: 1.1rem; border-radius: 5px; cursor: pointer; width: 100%; transition: 0.3s; font-weight: bold; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
-        
-        /* BOTÃO SAIR AZUL */
         .btn-sair { background-color: #007bff; margin-top: 20px; }
-        .btn-sair:hover { background-color: #0056b3; }
-        
         .footer { margin-top: 20px; font-size: 0.8rem; opacity: 0.7; }
         #status { display:none; margin-top: 15px; padding: 20px; border-radius: 10px; }
         .hidden { display: none; }
         .success-box { border: 2px solid #28a745; color: #28a745; background: #f4fff6; }
+        #loading-msg { color: #666; font-style: italic; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
@@ -33,7 +30,7 @@
         <!-- SESSÃO NOTIFICAR -->
         <div id="sessaoNotificar" class="hidden">
             <h1>Objeto Encontrado!</h1>
-            <p>Você é um herói! Encontrou um objeto protegido.</p>
+            <p>Você encontrou um objeto protegido.</p>
             <div style="text-align: left; background: #f9f9f9; padding: 10px; border-radius: 10px; margin-bottom: 15px; border-left: 5px solid #28a745;">
                 <p><strong>Objeto:</strong> <span id="view_nome"></span></p>
                 <p><strong>Contatos:</strong> <br><span id="view_contatos" style="font-size: 0.9rem;"></span></p>
@@ -41,14 +38,16 @@
             </div>
             <form id="formNotificar">
                 <textarea id="mensagem" placeholder="Deixe uma mensagem para o dono..." rows="3" required></textarea>
-                <button type="submit" id="btnEnviar">Avisar o Dono Agora</button>
+                <div id="containerBotao">
+                    <button type="submit" id="btnEnviar">Avisar o Dono Agora</button>
+                </div>
+                <div id="loading-msg">Localizando e enviando...</div>
             </form>
         </div>
 
         <!-- SESSÃO ATIVAR -->
         <div id="sessaoAtivar" class="hidden">
             <h1>Ativar Proteção</h1>
-            <p>Cadastre seus dados para proteger este objeto.</p>
             <form id="formAtivar">
                 <input type="text" id="obj_nome" placeholder="Nome do Objeto" required>
                 <input type="text" id="owner_nome" placeholder="Seu Nome" required>
@@ -72,24 +71,14 @@
         const API_URL = "https://beoq915off.execute-api.us-east-2.amazonaws.com/v1/notificar";
         const urlParams = new URLSearchParams(window.location.search);
         const tagId = urlParams.get('id');
-        let processandoEnvio = false;
+        let enviado = false;
 
         async function checkTag() {
-            if (!tagId) { 
-                document.getElementById('loading').innerText = "Erro: ID ausente."; 
-                return; 
-            }
-            
-            // Reset de interface
-            document.getElementById('sessaoAtivar').classList.add('hidden');
-            document.getElementById('sessaoNotificar').classList.add('hidden');
-            document.getElementById('status').style.display = "none";
-
+            if (!tagId) { document.getElementById('loading').innerText = "Erro: ID ausente."; return; }
             try {
                 const resp = await fetch(`${API_URL}?id=${tagId}`);
                 const data = await resp.json();
                 document.getElementById('loading').classList.add('hidden');
-                
                 if (data.status === "pendente_ativacao") {
                     document.getElementById('sessaoAtivar').classList.remove('hidden');
                 } else {
@@ -98,61 +87,59 @@
                     document.getElementById('view_instrucoes').innerText = data.dados_objeto.instrucoes || "Não cadastrado";
                     document.getElementById('sessaoNotificar').classList.remove('hidden');
                 }
-            } catch (e) { 
-                document.getElementById('loading').innerText = "Erro de conexão."; 
-            }
+            } catch (e) { document.getElementById('loading').innerText = "Erro de conexão."; }
         }
 
-        async function enviarEmailFinal(lat, lon) {
-            if (processandoEnvio) return; 
-            processandoEnvio = true;
+        async function acaoFinal(lat, lon) {
+            if (enviado) return;
+            enviado = true;
+            
+            // Remove o formulário da visão imediatamente
+            document.getElementById('sessaoNotificar').classList.add('hidden');
+            document.getElementById('sessaoAtivar').classList.add('hidden');
+
             try {
                 await fetch(API_URL, {
                     method: 'POST',
+                    mode: 'no-cors', // Evita pré-vôos de CORS que podem gerar logs duplos
                     body: JSON.stringify({
                         tag_id: tagId,
-                        info: document.getElementById('mensagem').value,
-                        lat: lat.toString(), lon: lon.toString()
+                        info: document.getElementById('mensagem').value || "Ativação",
+                        lat: lat.toString(),
+                        lon: lon.toString()
                     })
                 });
-                exibirSucesso("✅ Concluído!", "Ação realizada com sucesso. O dono foi notificado.");
-            } catch (err) {
-                processandoEnvio = false;
-                document.getElementById('btnEnviar').disabled = false;
-            }
+            } catch (e) { /* no-cors não permite ler resposta, mas envia o dado */ }
+            
+            exibirSucesso("✅ Concluído!", "Obrigado! Ação realizada com sucesso.");
         }
 
         function exibirSucesso(titulo, mensagem) {
-            document.getElementById('sessaoNotificar').classList.add('hidden');
-            document.getElementById('sessaoAtivar').classList.add('hidden');
             const st = document.getElementById('status');
             st.style.display = "block";
             document.getElementById('status-content').innerHTML = `<h2>${titulo}</h2><p>${mensagem}</p>`;
         }
 
-        function sair() {
-            // Redireciona e limpa o histórico da sessão atual
-            window.location.replace("https://google.com");
-        }
+        function sair() { window.location.replace("https://www.google.com"); }
 
         document.getElementById('formNotificar').addEventListener('submit', function(e) {
             e.preventDefault();
-            const btn = document.getElementById('btnEnviar');
-            btn.disabled = true;
-            btn.innerText = "Processando...";
-            const timeoutGPS = setTimeout(() => { enviarEmailFinal("0", "0"); }, 4000);
+            // REMOVE O BOTÃO DO DOM PARA IMPEDIR QUALQUER CLIQUE EXTRA
+            document.getElementById('containerBotao').innerHTML = ""; 
+            document.getElementById('loading-msg').style.display = "block";
+
+            const timer = setTimeout(() => acaoFinal("0", "0"), 5000);
+
             navigator.geolocation.getCurrentPosition(
-                (pos) => { clearTimeout(timeoutGPS); enviarEmailFinal(pos.coords.latitude, pos.coords.longitude); },
-                () => { clearTimeout(timeoutGPS); enviarEmailFinal("0", "0"); },
-                { enableHighAccuracy: true, timeout: 3500 }
+                (pos) => { clearTimeout(timer); acaoFinal(pos.coords.latitude, pos.coords.longitude); },
+                () => { clearTimeout(timer); acaoFinal("0", "0"); },
+                { enableHighAccuracy: true, timeout: 4500 }
             );
         });
 
         document.getElementById('formAtivar').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = document.getElementById('btnAtivar');
-            btn.disabled = true;
-            btn.innerText = "Ativando...";
+            document.getElementById('btnAtivar').remove();
             const payload = {
                 tag_id: tagId, ativada: true,
                 owner_name: document.getElementById('owner_nome').value,
@@ -162,13 +149,8 @@
                 contatos_alternativos: document.getElementById('contatos_alternativos').value,
                 instrucoes_devolucao: document.getElementById('instrucoes_devolucao').value
             };
-            try {
-                await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                exibirSucesso("✅ Ativado!", "Sua etiqueta está pronta. Agora você já pode sair.");
-            } catch (err) {
-                btn.disabled = false;
-                btn.innerText = "Ativar Etiqueta";
-            }
+            await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+            exibirSucesso("✅ Ativado!", "Sua proteção está ativa.");
         });
 
         checkTag();
