@@ -27,7 +27,6 @@
         <img src="Acheeii.jpg" alt="Logo Acheeii" class="logo">
         <div id="loading">Verificando etiqueta...</div>
 
-        <!-- SESSÃO NOTIFICAR -->
         <div id="sessaoNotificar" class="hidden">
             <h1>Objeto Encontrado!</h1>
             <p>Você encontrou um objeto protegido.</p>
@@ -45,7 +44,6 @@
             </form>
         </div>
 
-        <!-- SESSÃO ATIVAR -->
         <div id="sessaoAtivar" class="hidden">
             <h1>Ativar Proteção</h1>
             <form id="formAtivar">
@@ -59,7 +57,6 @@
             </form>
         </div>
 
-        <!-- TELA DE SUCESSO -->
         <div id="status" class="success-box">
             <div id="status-content"></div>
             <button onclick="sair()" class="btn-sair">Sair</button>
@@ -74,7 +71,7 @@
         let enviado = false;
 
         async function checkTag() {
-            if (!tagId) { document.getElementById('loading').innerText = "Erro: ID ausente."; return; }
+            if (!tagId) return;
             try {
                 const resp = await fetch(`${API_URL}?id=${tagId}`);
                 const data = await resp.json();
@@ -94,14 +91,13 @@
             if (enviado) return;
             enviado = true;
             
-            // Remove o formulário da visão imediatamente
             document.getElementById('sessaoNotificar').classList.add('hidden');
             document.getElementById('sessaoAtivar').classList.add('hidden');
 
             try {
                 await fetch(API_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // Evita pré-vôos de CORS que podem gerar logs duplos
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         tag_id: tagId,
                         info: document.getElementById('mensagem').value || "Ativação",
@@ -109,9 +105,9 @@
                         lon: lon.toString()
                     })
                 });
-            } catch (e) { /* no-cors não permite ler resposta, mas envia o dado */ }
+            } catch (e) { console.log("Erro no envio"); }
             
-            exibirSucesso("✅ Concluído!", "Obrigado! Ação realizada com sucesso.");
+            exibirSucesso("✅ Concluído!", "Ação realizada com sucesso.");
         }
 
         function exibirSucesso(titulo, mensagem) {
@@ -124,12 +120,9 @@
 
         document.getElementById('formNotificar').addEventListener('submit', function(e) {
             e.preventDefault();
-            // REMOVE O BOTÃO DO DOM PARA IMPEDIR QUALQUER CLIQUE EXTRA
             document.getElementById('containerBotao').innerHTML = ""; 
             document.getElementById('loading-msg').style.display = "block";
-
             const timer = setTimeout(() => acaoFinal("0", "0"), 5000);
-
             navigator.geolocation.getCurrentPosition(
                 (pos) => { clearTimeout(timer); acaoFinal(pos.coords.latitude, pos.coords.longitude); },
                 () => { clearTimeout(timer); acaoFinal("0", "0"); },
@@ -149,7 +142,11 @@
                 contatos_alternativos: document.getElementById('contatos_alternativos').value,
                 instrucoes_devolucao: document.getElementById('instrucoes_devolucao').value
             };
-            await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+            await fetch(API_URL, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify(payload) 
+            });
             exibirSucesso("✅ Ativado!", "Sua proteção está ativa.");
         });
 
