@@ -7,7 +7,7 @@
     <title>Acheeii!!! - Proteção Inteligente</title>
     <style>
         body { font-family: sans-serif; background-color: #003366; color: white; text-align: center; padding: 20px; }
-        .card { background: white; color: #333; padding: 30px; border-radius: 15px; max-width: 400px; margin: 50px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .card { background: white; color: #333; padding: 30px; border-radius: 15px; max-width: 400px; margin: 20px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         h1 { color: #003366; margin-bottom: 10px; font-size: 1.5rem; }
         p { font-size: 1rem; line-height: 1.5; }
         .logo { width: 120px; margin-bottom: 20px; border-radius: 10px; }
@@ -31,15 +31,12 @@
         <div id="sessaoNotificar" class="hidden">
             <h1>Objeto Encontrado!</h1>
             <p>Você é um herói! Encontrou um objeto protegido pelo <strong>Acheeii!!!</strong>.</p>
-            
-            <!-- Mostra dados do dono se existirem -->
             <div id="infoObjetoDono" style="text-align: left; background: #f9f9f9; padding: 10px; border-radius: 10px; margin-bottom: 15px; border-left: 5px solid #28a745;">
                 <img id="view_foto" src="" style="width:100%; border-radius:8px; display:none; margin-bottom:10px;">
                 <p><strong>Objeto:</strong> <span id="view_nome"></span></p>
                 <p><strong>Contatos Extras:</strong> <br><span id="view_contatos" style="font-size: 0.9rem;"></span></p>
                 <p><strong>Instruções:</strong> <br><span id="view_instrucoes" style="font-size: 0.9rem;"></span></p>
             </div>
-
             <form id="formNotificar">
                 <textarea id="mensagem" placeholder="Deseja enviar um aviso ao dono? Ex: Deixei na recepção..." rows="3"></textarea>
                 <button type="submit" id="btnEnviar">Notificar o Dono Agora</button>
@@ -56,11 +53,11 @@
                 <input type="email" id="owner_email" placeholder="Seu E-mail" required>
                 <input type="tel" id="owner_phone" placeholder="Seu Telefone" required>
                 
-                <label>Foto do Objeto:</label>
-                <input type="file" id="foto_input" accept="image/*">
+                <label>Foto do Objeto (Obrigatória):</label>
+                <input type="file" id="foto_input" accept="image/*" required>
                 <img id="preview-img" src="">
 
-                <label>Contatos Alternativos (Mãe, Trabalho...):</label>
+                <label>Contatos Alternativos:</label>
                 <textarea id="contatos_alternativos" placeholder="Ex: Esposa (11) 9999-9999" rows="2"></textarea>
 
                 <label>Instruções de Devolução:</label>
@@ -81,19 +78,34 @@
         const tagId = urlParams.get('id');
         let fotoBase64 = "";
 
-        // Pré-visualização da imagem e conversão para Base64
+        // FUNÇÃO PARA REDIMENSIONAR A FOTO (Evita travar a Lambda)
         document.getElementById('foto_input').addEventListener('change', function(e) {
             const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    fotoBase64 = event.target.result;
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; // Define largura máxima de 800px
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    // Converte para JPEG com qualidade 0.7 (fica bem leve)
+                    fotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                    
                     const preview = document.getElementById('preview-img');
                     preview.src = fotoBase64;
                     preview.style.display = 'block';
                 };
-                reader.readAsDataURL(file);
-            }
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
         });
 
         async function checkTag() {
@@ -109,7 +121,6 @@
                 if (data.status === "pendente_ativacao") {
                     document.getElementById('sessaoAtivar').classList.remove('hidden');
                 } else if (data.status === "objeto_localizado") {
-                    // Preenche dados para quem encontrou
                     document.getElementById('view_nome').innerText = data.dados_objeto.nome || "Objeto Protegido";
                     document.getElementById('view_contatos').innerText = data.dados_objeto.contatos || "Não informado";
                     document.getElementById('view_instrucoes').innerText = data.dados_objeto.instrucoes || "Não informado";
@@ -129,7 +140,7 @@
             e.preventDefault();
             const btn = document.getElementById('btnAtivar');
             btn.disabled = true;
-            btn.innerText = "Enviando dados e foto...";
+            btn.innerText = "Processando e Enviando...";
 
             const payload = {
                 tag_id: tagId,
@@ -140,7 +151,7 @@
                 object_name: document.getElementById('obj_nome').value,
                 contatos_alternativos: document.getElementById('contatos_alternativos').value,
                 instrucoes_devolucao: document.getElementById('instrucoes_devolucao').value,
-                foto_base64: fotoBase64 // Foto convertida
+                foto_base64: fotoBase64
             };
 
             try {
@@ -149,15 +160,19 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload) 
                 });
+                
                 if (resp.ok) {
                     document.getElementById('sessaoAtivar').classList.add('hidden');
                     const status = document.getElementById('status');
                     status.style.display = "block";
-                    status.innerHTML = `<h2 style="color: #28a745;">✨ Ativado com Sucesso!</h2><p>Seu objeto está seguro.</p>`;
+                    status.innerHTML = `<h2 style="color: #28a745;">✨ Ativado com Sucesso!</h2><p>Sua etiqueta agora está protegida.</p>`;
+                } else {
+                    throw new Error();
                 }
             } catch (err) {
-                alert("Erro na ativação.");
+                alert("Erro ao enviar. Tente uma foto diferente ou verifique sua conexão.");
                 btn.disabled = false;
+                btn.innerText = "Ativar Proteção";
             }
         });
 
@@ -165,8 +180,7 @@
             e.preventDefault();
             const btn = document.getElementById('btnEnviar');
             btn.disabled = true;
-            btn.innerText = "Enviando localização...";
-
+            btn.innerText = "Enviando...";
             navigator.geolocation.getCurrentPosition(async (pos) => {
                 await enviarNotificacao(pos.coords.latitude, pos.coords.longitude);
             }, () => {
@@ -175,16 +189,11 @@
         });
 
         async function enviarNotificacao(lat, lon) {
-            const payload = {
-                tag_id: tagId,
-                info: document.getElementById('mensagem').value,
-                lat: lat.toString(),
-                lon: lon.toString()
-            };
+            const payload = { tag_id: tagId, info: document.getElementById('mensagem').value, lat: lat.toString(), lon: lon.toString() };
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
             document.getElementById('sessaoNotificar').classList.add('hidden');
             document.getElementById('status').style.display = "block";
-            document.getElementById('status').innerText = "✅ Dono avisado! Obrigado por ajudar.";
+            document.getElementById('status').innerText = "✅ Dono avisado! Obrigado por sua honestidade.";
         }
 
         checkTag();
