@@ -14,7 +14,8 @@
         input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; resize: none; font-size: 1rem; }
         button { background-color: #28a745; color: white; border: none; padding: 15px 25px; font-size: 1.1rem; border-radius: 5px; cursor: pointer; width: 100%; transition: 0.3s; font-weight: bold; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
-        /* COR DO BOTÃO SAIR ALTERADA PARA AZUL */
+        
+        /* BOTÃO SAIR AZUL */
         .btn-sair { background-color: #007bff; margin-top: 20px; }
         .btn-sair:hover { background-color: #0056b3; }
         
@@ -74,11 +75,21 @@
         let processandoEnvio = false;
 
         async function checkTag() {
-            if (!tagId) { document.getElementById('loading').innerText = "Erro: ID ausente."; return; }
+            if (!tagId) { 
+                document.getElementById('loading').innerText = "Erro: ID ausente."; 
+                return; 
+            }
+            
+            // Reset de interface
+            document.getElementById('sessaoAtivar').classList.add('hidden');
+            document.getElementById('sessaoNotificar').classList.add('hidden');
+            document.getElementById('status').style.display = "none";
+
             try {
                 const resp = await fetch(`${API_URL}?id=${tagId}`);
                 const data = await resp.json();
                 document.getElementById('loading').classList.add('hidden');
+                
                 if (data.status === "pendente_ativacao") {
                     document.getElementById('sessaoAtivar').classList.remove('hidden');
                 } else {
@@ -87,7 +98,9 @@
                     document.getElementById('view_instrucoes').innerText = data.dados_objeto.instrucoes || "Não cadastrado";
                     document.getElementById('sessaoNotificar').classList.remove('hidden');
                 }
-            } catch (e) { document.getElementById('loading').innerText = "Erro de conexão."; }
+            } catch (e) { 
+                document.getElementById('loading').innerText = "Erro de conexão."; 
+            }
         }
 
         async function enviarEmailFinal(lat, lon) {
@@ -102,7 +115,7 @@
                         lat: lat.toString(), lon: lon.toString()
                     })
                 });
-                exibirSucesso("✅ Concluído!", "Ação realizada com sucesso. Você pode fechar esta página.");
+                exibirSucesso("✅ Concluído!", "Ação realizada com sucesso. O dono foi notificado.");
             } catch (err) {
                 processandoEnvio = false;
                 document.getElementById('btnEnviar').disabled = false;
@@ -118,9 +131,8 @@
         }
 
         function sair() {
-            if (!window.close()) {
-                window.location.href = "https://google.com";
-            }
+            // Redireciona e limpa o histórico da sessão atual
+            window.location.replace("https://google.com");
         }
 
         document.getElementById('formNotificar').addEventListener('submit', function(e) {
@@ -152,7 +164,7 @@
             };
             try {
                 await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                exibirSucesso("✅ Tudo Pronto!", "Sua etiqueta foi ativada. Agora você pode sair.");
+                exibirSucesso("✅ Ativado!", "Sua etiqueta está pronta. Agora você já pode sair.");
             } catch (err) {
                 btn.disabled = false;
                 btn.innerText = "Ativar Etiqueta";
