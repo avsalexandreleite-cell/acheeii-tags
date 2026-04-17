@@ -21,12 +21,10 @@
 </head>
 <body>
     <div class="card">
-        <!-- O SEU LOGO PERMANECE AQUI -->
         <img src="Acheeii.jpg" alt="Logo Acheeii" class="logo">
         
         <div id="loading">Verificando etiqueta...</div>
 
-        <!-- SESSÃO: OBJETO ENCONTRADO -->
         <div id="sessaoNotificar" class="hidden">
             <h1>Objeto Encontrado!</h1>
             <p>Você é um herói! Encontrou um objeto protegido.</p>
@@ -41,69 +39,6 @@
             </form>
         </div>
 
-        <!-- SESSÃO: ATIVAÇÃO -->
-        <div id="sessaoAtivar" class="hidden">
-            <h1>Ativar Proteção</h1>
-            <p>Cadastre seus dados para proteger este objeto.</p>
-            <form id="formAtivar">
-                <input type="text" id="obj_nome" placeholder="Nome do Objeto" required>
-                <input type="text" id="owner_nome" placeholder="Seu Nome" required>
-                <input type="email" id="owner_email" placeholder="Seu E-mail" required>
-                <input type="tel" id="owner_phone" placeholder="Seu Telefone" required>
-                <textarea id="contatos_alternativos" placeholder="Contatos de emergência (Ex: Mãe 11...)" rows="2"></textarea>
-                <textarea id="instrucoes_devolucao" placeholder="Onde devolver? (Ex: Portaria do prédio)" rows="2"></textarea>
-                <button type="submit" id="btnAtivar" style="background-color: #003366;">Ativar Etiqueta</button>
-            </form>
-        </div>
-
-        <div id="status"></div>
-    </div>
-    <div class="footer">Tecnologia que devolve. © 2024 Acheeii!!!</div>
-
-    <script>
-        const API_URL = "<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acheeii!!! - Proteção Inteligente</title>
-    <style>
-        body { font-family: sans-serif; background-color: #003366; color: white; text-align: center; padding: 20px; }
-        .card { background: white; color: #333; padding: 30px; border-radius: 15px; max-width: 400px; margin: 20px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        h1 { color: #003366; margin-bottom: 10px; font-size: 1.5rem; }
-        p { font-size: 1rem; line-height: 1.5; }
-        .logo { width: 120px; margin-bottom: 20px; border-radius: 10px; }
-        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; resize: none; font-size: 1rem; }
-        button { background-color: #28a745; color: white; border: none; padding: 15px 25px; font-size: 1.1rem; border-radius: 5px; cursor: pointer; width: 100%; transition: 0.3s; font-weight: bold; }
-        button:hover { opacity: 0.9; }
-        .footer { margin-top: 20px; font-size: 0.8rem; opacity: 0.7; }
-        #status { display:none; color: #28a745; font-weight: bold; margin-top: 15px; padding: 10px; border: 1px solid #28a745; border-radius: 5px; }
-        .hidden { display: none; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <!-- O SEU LOGO PERMANECE AQUI -->
-        <img src="Acheeii.jpg" alt="Logo Acheeii" class="logo">
-        
-        <div id="loading">Verificando etiqueta...</div>
-
-        <!-- SESSÃO: OBJETO ENCONTRADO -->
-        <div id="sessaoNotificar" class="hidden">
-            <h1>Objeto Encontrado!</h1>
-            <p>Você é um herói! Encontrou um objeto protegido.</p>
-            <div id="infoObjetoDono" style="text-align: left; background: #f9f9f9; padding: 10px; border-radius: 10px; margin-bottom: 15px; border-left: 5px solid #28a745;">
-                <p><strong>Objeto:</strong> <span id="view_nome"></span></p>
-                <p><strong>Contatos Extras:</strong> <br><span id="view_contatos" style="font-size: 0.9rem;"></span></p>
-                <p><strong>Instruções de Devolução:</strong> <br><span id="view_instrucoes" style="font-size: 0.9rem;"></span></p>
-            </div>
-            <form id="formNotificar">
-                <textarea id="mensagem" placeholder="Deixe uma mensagem para o dono..." rows="3"></textarea>
-                <button type="submit" id="btnEnviar">Avisar o Dono Agora</button>
-            </form>
-        </div>
-
-        <!-- SESSÃO: ATIVAÇÃO -->
         <div id="sessaoAtivar" class="hidden">
             <h1>Ativar Proteção</h1>
             <p>Cadastre seus dados para proteger este objeto.</p>
@@ -180,75 +115,6 @@
                 document.getElementById('status').style.display = "block";
                 document.getElementById('status').innerText = "✅ Notificação enviada!";
             }, () => {
-                // Envia sem GPS se falhar
-                fetch(API_URL, { method: 'POST', body: JSON.stringify({tag_id: tagId, info: document.getElementById('mensagem').value, lat: "0", lon: "0"}) });
-                document.getElementById('sessaoNotificar').classList.add('hidden');
-                document.getElementById('status').style.display = "block";
-                document.getElementById('status').innerText = "✅ Notificação enviada (sem GPS).";
-            });
-        });
-
-        checkTag();
-    </script>
-</body>
-</html>";
-        const urlParams = new URLSearchParams(window.location.search);
-        const tagId = urlParams.get('id');
-
-        async function checkTag() {
-            if (!tagId) { document.getElementById('loading').innerText = "Erro: ID ausente."; return; }
-            try {
-                const resp = await fetch(`${API_URL}?id=${tagId}`);
-                const data = await resp.json();
-                document.getElementById('loading').classList.add('hidden');
-                
-                if (data.status === "pendente_ativacao") {
-                    document.getElementById('sessaoAtivar').classList.remove('hidden');
-                } else if (data.status === "objeto_localizado") {
-                    document.getElementById('view_nome').innerText = data.dados_objeto.nome;
-                    document.getElementById('view_contatos').innerText = data.dados_objeto.contatos || "Não cadastrado";
-                    document.getElementById('view_instrucoes').innerText = data.dados_objeto.instrucoes || "Não cadastrado";
-                    document.getElementById('sessaoNotificar').classList.remove('hidden');
-                }
-            } catch (e) { document.getElementById('loading').innerText = "Erro de conexão."; }
-        }
-
-        document.getElementById('formAtivar').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const payload = {
-                tag_id: tagId, ativada: true,
-                owner_name: document.getElementById('owner_nome').value,
-                owner_email: document.getElementById('owner_email').value,
-                owner_phone: document.getElementById('owner_phone').value,
-                object_name: document.getElementById('obj_nome').value,
-                contatos_alternativos: document.getElementById('contatos_alternativos').value,
-                instrucoes_devolucao: document.getElementById('instrucoes_devolucao').value
-            };
-            const resp = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-            if (resp.ok) {
-                document.getElementById('sessaoAtivar').classList.add('hidden');
-                const status = document.getElementById('status');
-                status.style.display = "block";
-                status.innerHTML = `<h2 style="color:#28a745">✅ Ativado!</h2><p>Objeto protegido com sucesso.</p>`;
-            }
-        });
-
-        document.getElementById('formNotificar').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btnEnviar');
-            btn.disabled = true;
-            btn.innerText = "Enviando...";
-
-            navigator.geolocation.getCurrentPosition(async (pos) => {
-                await fetch(API_URL, { method: 'POST', body: JSON.stringify({
-                    tag_id: tagId, info: document.getElementById('mensagem').value,
-                    lat: pos.coords.latitude.toString(), lon: pos.coords.longitude.toString()
-                })});
-                document.getElementById('sessaoNotificar').classList.add('hidden');
-                document.getElementById('status').style.display = "block";
-                document.getElementById('status').innerText = "✅ Notificação enviada!";
-            }, () => {
-                // Envia sem GPS se falhar
                 fetch(API_URL, { method: 'POST', body: JSON.stringify({tag_id: tagId, info: document.getElementById('mensagem').value, lat: "0", lon: "0"}) });
                 document.getElementById('sessaoNotificar').classList.add('hidden');
                 document.getElementById('status').style.display = "block";
