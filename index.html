@@ -68,11 +68,11 @@
                     btn.innerText = "Enviando notificação...";
 
                     const payload = {
-                        tag_id: tagId,
-                        info: mensagemInput, // 'info' é o campo que sua Lambda usa para a mensagem
-                        lat: position.coords.latitude.toString(),
-                        lon: position.coords.longitude.toString()
-                    };
+    tag_id: tagId,
+    info: document.getElementById('mensagem').value, // Pega o texto da caixa
+    lat: position.coords.latitude.toString(),
+    lon: position.coords.longitude.toString()
+};
 
                     // SUA URL DA API GATEWAY CORRIGIDA
                     const API_URL = "https://beoq915off.execute-api.us-east-2.amazonaws.com/v1/notificar";
