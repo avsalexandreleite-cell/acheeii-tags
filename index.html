@@ -14,6 +14,7 @@
         input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; resize: none; font-size: 1rem; }
         button { background-color: #28a745; color: white; border: none; padding: 15px 25px; font-size: 1.1rem; border-radius: 5px; cursor: pointer; width: 100%; transition: 0.3s; font-weight: bold; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .btn-sair { background-color: #dc3545; margin-top: 20px; }
         .footer { margin-top: 20px; font-size: 0.8rem; opacity: 0.7; }
         #status { display:none; margin-top: 15px; padding: 20px; border-radius: 10px; }
         .hidden { display: none; }
@@ -25,7 +26,7 @@
         <img src="Acheeii.jpg" alt="Logo Acheeii" class="logo">
         <div id="loading">Verificando etiqueta...</div>
 
-        <!-- SESSÃO NOTIFICAR (Para quem encontrou) -->
+        <!-- SESSÃO NOTIFICAR -->
         <div id="sessaoNotificar" class="hidden">
             <h1>Objeto Encontrado!</h1>
             <p>Você é um herói! Encontrou um objeto protegido.</p>
@@ -40,7 +41,7 @@
             </form>
         </div>
 
-        <!-- SESSÃO ATIVAR (Para o dono cadastrar) -->
+        <!-- SESSÃO ATIVAR -->
         <div id="sessaoAtivar" class="hidden">
             <h1>Ativar Proteção</h1>
             <p>Cadastre seus dados para proteger este objeto.</p>
@@ -55,8 +56,11 @@
             </form>
         </div>
 
-        <!-- TELA DE SUCESSO (Mensagem final) -->
-        <div id="status" class="success-box"></div>
+        <!-- TELA DE SUCESSO COM BOTÃO SAIR -->
+        <div id="status" class="success-box">
+            <div id="status-content"></div>
+            <button onclick="sair()" class="btn-sair">Sair</button>
+        </div>
     </div>
     <div class="footer">Tecnologia que devolve. © 2024 Acheeii!!!</div>
 
@@ -72,7 +76,6 @@
                 const resp = await fetch(`${API_URL}?id=${tagId}`);
                 const data = await resp.json();
                 document.getElementById('loading').classList.add('hidden');
-                
                 if (data.status === "pendente_ativacao") {
                     document.getElementById('sessaoAtivar').classList.remove('hidden');
                 } else {
@@ -96,7 +99,7 @@
                         lat: lat.toString(), lon: lon.toString()
                     })
                 });
-                exibirSucesso("✅ Notificação enviada!", "Obrigado por ajudar! O dono foi avisado e receberá sua localização.");
+                exibirSucesso("✅ Notificação enviada!", "O dono foi avisado. Você pode fechar esta página.");
             } catch (err) {
                 processandoEnvio = false;
                 document.getElementById('btnEnviar').disabled = false;
@@ -108,7 +111,14 @@
             document.getElementById('sessaoAtivar').classList.add('hidden');
             const st = document.getElementById('status');
             st.style.display = "block";
-            st.innerHTML = `<h2>${titulo}</h2><p>${mensagem}</p>`;
+            document.getElementById('status-content').innerHTML = `<h2>${titulo}</h2><p>${mensagem}</p>`;
+        }
+
+        function sair() {
+            // Tenta fechar a aba. Se não puder, redireciona para o Google para "limpar" a tela.
+            if (!window.close()) {
+                window.location.href = "https://google.com";
+            }
         }
 
         document.getElementById('formNotificar').addEventListener('submit', function(e) {
@@ -140,11 +150,10 @@
             };
             try {
                 await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                exibirSucesso("✅ Ativado com Sucesso!", "Sua etiqueta está pronta. Se alguém escanear este QR Code, você será notificado na hora.");
+                exibirSucesso("✅ Ativado!", "Etiqueta pronta. Agora você pode sair.");
             } catch (err) {
                 btn.disabled = false;
                 btn.innerText = "Ativar Etiqueta";
-                alert("Erro ao salvar. Tente novamente.");
             }
         });
 
