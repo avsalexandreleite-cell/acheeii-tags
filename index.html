@@ -7,117 +7,80 @@
     <style>
         body { font-family: sans-serif; background-color: #003366; color: white; text-align: center; padding: 20px; }
         .card { background: white; color: #333; padding: 25px; border-radius: 15px; max-width: 450px; margin: 20px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        h1 { color: #003366; margin-bottom: 5px; font-size: 1.4rem; }
-        p { font-size: 0.9rem; color: #666; margin-bottom: 20px; }
-        .logo { width: 100px; margin-bottom: 10px; border-radius: 10px; }
-        
+        h1 { color: #003366; font-size: 1.4rem; margin-bottom: 5px; }
+        p { font-size: 0.9rem; color: #666; }
         label { display: block; text-align: left; font-size: 0.85rem; font-weight: bold; margin: 10px 0 5px 5px; color: #003366; }
-        input, select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
-        
-        .row { display: flex; gap: 10px; }
-        .row select { flex: 1; }
-        .row input { flex: 2; }
-
-        button { background-color: #28a745; color: white; border: none; padding: 15px; font-size: 1.1rem; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; transition: 0.3s; margin-top: 10px; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        
-        .section-title { background: #f0f4f8; padding: 8px; border-radius: 5px; font-size: 0.8rem; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-top: 15px; }
+        input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { background-color: #28a745; color: white; border: none; padding: 15px; font-size: 1.1rem; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; }
+        button:disabled { background-color: #ccc; }
+        .termos { display: flex; align-items: flex-start; gap: 8px; text-align: left; margin: 15px 0; font-size: 0.8rem; }
         .hidden { display: none; }
-        .footer { margin-top: 20px; font-size: 0.8rem; opacity: 0.7; }
-        
-        #codigo_validacao { text-align: center; font-size: 1.5rem; letter-spacing: 5px; font-weight: bold; border: 2px solid #003366; }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <img src="Acheeii.jpg" alt="Logo Acheeii" class="logo">
+<div class="card">
+    <div id="app-container">
+        <h1>Ativar Etiqueta</h1>
+        <p>Preencha os dados para ativar sua proteção.</p>
         
-        <!-- ETAPA 1: CADASTRO -->
-        <div id="etapa-cadastro">
-            <h1>Ativar Etiqueta</h1>
-            <p>Preencha todos os campos para ativar sua proteção inteligente.</p>
-            
-            <form id="formCadastro">
-                <label>Seu Nome Completo</label>
-                <input type="text" id="nome" placeholder="Ex: João Silva" required oninput="validar()">
+        <form id="formCadastro">
+            <label>Seu Nome Completo</label>
+            <input type="text" id="nome" oninput="validar()">
 
-                <label>Seu Telemóvel (WhatsApp)</label>
-                <input type="tel" id="tel_principal" placeholder="(00) 90000-0000" required oninput="validar()">
+            <label>Seu WhatsApp</label>
+            <input type="tel" id="tel" placeholder="(00) 00000-0000" oninput="validar()">
 
-                <div class="section-title">Contatos de Confiança</div>
-                <p style="margin-bottom: 10px;"><small>Eles serão avisados se você perder seu objeto.</small></p>
+            <div class="termos">
+                <input type="checkbox" id="checkTermos" onchange="validar()">
+                <span>Li e aceito os <a href="#" onclick="alert('Termos: Seus dados serão usados apenas para devolução.')">Termos de Responsabilidade</a>.</span>
+            </div>
 
-                <label>Contacto de Confiança 1</label>
-                <div class="row">
-                    <select id="app_1" required>
-                        <option value="whatsapp">WhatsApp</option>
-                    </select>
-                    <input type="tel" id="tel_conf_1" placeholder="Telemóvel 1" required oninput="validar()">
-                </div>
-
-                <label>Contacto de Confiança 2</label>
-                <div class="row">
-                    <select id="app_2" required>
-                        <option value="whatsapp">WhatsApp</option>
-                    </select>
-                    <input type="tel" id="tel_conf_2" placeholder="Telemóvel 2" required oninput="validar()">
-                </div>
-
-                <button type="button" id="btnAvancar" disabled onclick="irParaValidacao()">Gerar Código de Ativação</button>
-            </form>
-        </div>
-
-        <!-- ETAPA 2: VALIDAÇÃO -->
-        <div id="etapa-validacao" class="hidden">
-            <h1>Verifique seu Telemóvel</h1>
-            <p>Enviamos um código de confirmação para o número cadastrado.</p>
-            
-            <label>Introduza o código de 6 dígitos</label>
-            <input type="text" id="codigo_validacao" maxlength="6" placeholder="000000">
-            
-            <button type="button" onclick="confirmarAtivacao()">Certificar e Ativar</button>
-            <button type="button" style="background:none; color:#003366; font-size:0.8rem;" onclick="location.reload()">Voltar e corrigir dados</button>
-        </div>
+            <button type="button" id="btnAtivar" disabled onclick="ativar()">Ativar Proteção</button>
+        </form>
     </div>
+</div>
 
-    <div class="footer">
-        Tecnologia que devolve. © 2024 Acheeii!!!
-    </div>
+<script>
+    const API_URL = 'SUA_URL_DO_API_GATEWAY'; 
+    const urlParams = new URLSearchParams(window.location.search);
+    const tagId = urlParams.get('id');
 
-    <script>
-        // Função que valida se todos os campos estão preenchidos para liberar o botão
-        function validar() {
-            const nome = document.getElementById('nome').value;
-            const telP = document.getElementById('tel_principal').value;
-            const telC1 = document.getElementById('tel_conf_1').value;
-            const telC2 = document.getElementById('tel_conf_2').value;
-            const btn = document.getElementById('btnAvancar');
-
-            if(nome && telP && telC1 && telC2) {
-                btn.disabled = false;
-            } else {
-                btn.disabled = true;
-            }
+    // Validação de segurança ao carregar
+    window.onload = async () => {
+        if (!tagId) return alert("QR Code Inválido");
+        
+        const res = await fetch(`${API_URL}?id=${tagId}`);
+        if (res.status === 403) {
+            document.getElementById('app-container').innerHTML = "<h1>Aviso</h1><p>Esta etiqueta mestre já foi ativada e não responde mais a novos scans.</p>";
         }
+    };
 
-        function irParaValidacao() {
-            // Aqui seria o gatilho para disparar o SMS/WhatsApp via AWS
-            document.getElementById('etapa-cadastro').classList.add('hidden');
-            document.getElementById('etapa-validacao').classList.remove('hidden');
+    function validar() {
+        const preenchido = document.getElementById('nome').value && document.getElementById('tel').value;
+        const aceito = document.getElementById('checkTermos').checked;
+        document.getElementById('btnAtivar').disabled = !(preenchido && aceito);
+    }
+
+    async function ativar() {
+        const payload = {
+            tag_id: tagId,
+            ativada: true,
+            tipo: 'mae',
+            owner_name: document.getElementById('nome').value,
+            owner_phone: document.getElementById('tel').value
+        };
+
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            alert("Ativado! Agora use os adesivos menores nos seus objetos.");
+            location.reload(); // Recarrega para cair no bloqueio de "Já Ativado"
         }
-
-        function confirmarAtivacao() {
-            const codigo = document.getElementById('codigo_validacao').value;
-            if(codigo.length === 6) {
-                alert("Etiqueta Ativada com Sucesso! Seu objeto agora está protegido.");
-                // Redirecionar para dashboard ou página de sucesso
-            } else {
-                alert("Por favor, insira o código de 6 dígitos enviado.");
-            }
-        }
-    </script>
-
+    }
+</script>
 </body>
 </html>
-
