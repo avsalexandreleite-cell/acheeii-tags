@@ -14,15 +14,14 @@
         button { background-color: #28a745; color: white; border: none; padding: 15px; font-size: 1.1rem; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; }
         button:disabled { background-color: #ccc; }
         .termos { display: flex; align-items: flex-start; gap: 8px; text-align: left; margin: 15px 0; font-size: 0.8rem; }
-        .hidden { display: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div id="app-container">
-        <h1>Ativar Etiqueta</h1>
-        <p>Preencha os dados para ativar sua proteção.</p>
+        <h1>Ativar Etiqueta Mestre</h1>
+        <p>Cadastre-se uma única vez para gerenciar seus adesivos.</p>
         
         <form id="formCadastro">
             <label>Seu Nome Completo</label>
@@ -33,33 +32,38 @@
 
             <div class="termos">
                 <input type="checkbox" id="checkTermos" onchange="validar()">
-                <span>Li e aceito os <a href="#" onclick="alert('Termos: Seus dados serão usados apenas para devolução.')">Termos de Responsabilidade</a>.</span>
+                <span>Li e aceito os <a href="#" onclick="alert('Termos: Seus dados serão usados apenas para facilitar a devolução de seus objetos.')">Termos de Responsabilidade</a>.</span>
             </div>
 
-            <button type="button" id="btnAtivar" disabled onclick="ativar()">Ativar Proteção</button>
+            <button type="button" id="btnAtivar" disabled onclick="ativar()">Ativar Minha Cartela</button>
         </form>
     </div>
 </div>
 
 <script>
-    const API_URL = 'SUA_URL_DO_API_GATEWAY'; 
+    const API_URL = 'SUA_URL_DA_LAMBDA_AQUI'; 
     const urlParams = new URLSearchParams(window.location.search);
     const tagId = urlParams.get('id');
 
-    // Validação de segurança ao carregar
     window.onload = async () => {
-        if (!tagId) return alert("QR Code Inválido");
+        if (!tagId) return alert("QR Code Inválido ou ID ausente.");
         
-        const res = await fetch(`${API_URL}?id=${tagId}`);
-        if (res.status === 403) {
-            document.getElementById('app-container').innerHTML = "<h1>Aviso</h1><p>Esta etiqueta mestre já foi ativada e não responde mais a novos scans.</p>";
-        }
+        try {
+            const res = await fetch(`${API_URL}?id=${tagId}`);
+            const data = await res.json();
+            
+            // Bloqueio se já estiver ativada
+            if (res.status === 403 || (data.tipo === 'mae' && data.ativada)) {
+                document.getElementById('app-container').innerHTML = "<h1>Aviso</h1><p>Esta etiqueta mestre já foi ativada. Use agora os adesivos menores nos seus objetos.</p>";
+            }
+        } catch (e) { console.log("Pronto para ativar."); }
     };
 
     function validar() {
-        const preenchido = document.getElementById('nome').value && document.getElementById('tel').value;
+        const nome = document.getElementById('nome').value;
+        const tel = document.getElementById('tel').value;
         const aceito = document.getElementById('checkTermos').checked;
-        document.getElementById('btnAtivar').disabled = !(preenchido && aceito);
+        document.getElementById('btnAtivar').disabled = !(nome && tel && aceito);
     }
 
     async function ativar() {
@@ -71,16 +75,27 @@
             owner_phone: document.getElementById('tel').value
         };
 
-        const res = await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        });
+        try {
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
-        if (res.ok) {
-            alert("Ativado! Agora use os adesivos menores nos seus objetos.");
-            location.reload(); // Recarrega para cair no bloqueio de "Já Ativado"
+            if (res.ok) {
+                // SALVA O ID MÃE NO NAVEGADOR PARA OS PRÓXIMOS SCANS
+                localStorage.setItem('id_mae_acheeii', tagId);
+                
+                alert("Cartela ativada! Agora você pode colar e cadastrar seus 6 adesivos de objetos.");
+                location.reload(); 
+            } else {
+                alert("Erro ao ativar. Tente novamente.");
+            }
+        } catch (e) {
+            alert("Erro de conexão com o servidor.");
         }
     }
 </script>
 </body>
 </html>
+
